@@ -1,0 +1,67 @@
+library(tidyverse)
+library(pracma) # eigenvalue of a matrix; gramschimdt
+library(MASS)
+library(Matrix)
+
+matrix_1 <- matrix(
+  c(13.55, 10.00, 10.65, -2.05,
+    10.00, 18.19, 8.90, 3.58,
+    10.65, 8.90, 15.32, 3.00,
+    -2.05, 3.58, 3.00, 27.10),
+  nrow = 4,
+  ncol = 4,
+  byrow = TRUE)
+
+matrix_2 <- matrix(
+  c(18.74, 14.78, 15.62 ,2.51,14.78, 19.00 ,15.51, 7.02 ,15.62 ,15.51, 19.45 ,5.91, 2.51 ,7.02 ,5.91 ,23.31),
+  nrow = 4,
+  ncol = 4,
+  byrow = TRUE)
+
+matrix_3 <- matrix(
+  c(14.99, 7.91, 10.99, 7.39,
+    7.91, 14.38, 5.87, 4.78,
+    10.99, 5.87, 12.96, 6.51,
+    7.39, 4.78, 6.51, 14.41),
+  nrow = 4,
+  ncol = 4,
+  byrow = TRUE)
+
+
+matrix_4<- matrix(
+  c(13.71 ,8.82 ,11.81 ,2.80,8.82, 13.70 ,7.79, 1.47, 11.81 ,7.79 ,19.81, 1.08 , 2-80 ,1.47 ,1.08 ,12.44),
+  nrow = 4,
+  ncol = 4,
+  byrow = TRUE)
+
+
+cov_data <- list(matrix_1,matrix_2,matrix_3,matrix_4)
+
+avg_mat <- function(list_of_mat){
+  sum_of_mat <- 0
+  for(i in 1:length(list_of_mat)){
+    sum_of_mat <- sum_of_mat + list_of_mat[[i]]
+  }
+  sum_of_mat/length(list_of_mat)
+}
+
+pcpc_est <- function(cov_data, ns, k = NULL){
+  n <- length(cov_data)
+  p <- nrow(cov_data[[1]])
+  avg_cov <- avg_mat(cov_data)
+  print(avg_cov)
+  pc_candi <- svd(avg_cov)$u
+  reconstruct_cov_data <- map(cov_data, ~t(pc_candi) %*% . %*% pc_candi)
+  eig_avg_cov <- eig(avg_cov)
+  cpc_error <- map_dbl(1:p, function(i){
+    mean(map_dbl(reconstruct_cov_data, ~sum(.[i,-i]^2/(eig_avg_cov[i]*eig_avg_cov[-i])))) * ns / (p-1)
+  })
+  pc_candi <- pc_candi[,order(cpc_error)]
+  if(!is.null(k)){
+    return(pc_candi[,1:k])
+  } else {
+    return(pcpc_test(pc_candi, cov_data, ns)$cpc)
+  }
+  
+}
+pcpc_est(cov_data, ns=16, k=1)
